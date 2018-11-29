@@ -11,10 +11,18 @@ from nltk.corpus import stopwords
 import unicodedata
 import re
 
+from sklearn.datasets import load_iris
+
+from sklearn.model_selection import cross_val_predict, cross_validate, StratifiedKFold
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
+
 from sklearn.linear_model import LogisticRegression
 from sklearn.naive_bayes import MultinomialNB
-from sklearn.ensemble import AdaBoostClassifier
-from sklearn import svm
+from sklearn.ensemble import AdaBoostClassifier, RandomForestClassifier
+from sklearn.svm import SVC, LinearSVC
+
+from sklearn.tree import DecisionTreeClassifier
+
 from bs4 import BeautifulSoup
 
 
@@ -119,35 +127,42 @@ class nlp(object):
         return re.sub('[^a-zA-Z0-9 \\\]', '', word)
 
     def remove_number(self, word):
-        return re.sub('[^a-zA-Z \\\]', '', word)
-
-    def test_data(self, data, length = 100, number_times = 10):
-        result = {}
-        classifiers = ['LogisticRegression', 'MultinomialNB', 'AdaBoostClassifier', 'SVC', 'LinearSVC', 'SVCScale']
-
-        for classifier in classifiers: 
-            result[classifier] = {}
-            result[classifier]['scores'] = []
+        return re.sub('[^a-zA-Z \\\]', '', word)               
         
-        for i in range(number_times):
-            np.random.shuffle(data)
+    def test_data(self, data, folds = 10, type_calc = 'validate'):
+        result = {}
+        
+        classifiers = [
+            'LogisticRegression',
+            'MultinomialNB',
+            'AdaBoostClassifier',
+            'SVC',
+            'LinearSVC',
+            'SVCScale',
+            'DecisionTree',
+            'RandomForest'
+        ]
 
-            features = data[:,:-1]
-            labels = data[:,-1]
+        #classifiers = ['LinearSVC']
 
-            features_train = features[:-length,]
-            labels_train = labels[:-length,]
+        features = data[:,:-1]
+        real_labels = data[:,-1]
 
-            features_test = features[-length:,]
-            labels_test = labels[-length:,]
+        #data = load_iris()
+        #data = load_linnerud()
 
-            for classifier in classifiers:
-                model = self.instance_classifier(classifier)
-                model.fit(features_train, labels_train)
-                result[classifier]['scores'].append(model.score(features_test, labels_test))
+        #features = data.data
+        #real_labels = data.target         
+        
+        for classifier in classifiers:
+            model = self.instance_classifier(classifier)
 
-        for classifier in classifiers: 
-            result[classifier]['avg_score'] = np.mean(result[classifier]['scores'])
+            if (type_calc == 'validate'):
+                result[classifier] = self.calc_cross_validate(model, features, real_labels, folds)
+            elif (type_calc == 'predict'):
+                result[classifier] = self.calc_cross_val_predict(model, features, real_labels, folds)
+            elif (type_calc == 'manual'):
+                result[classifier] = self.calc_manual(model, features, real_labels, folds)            
             
         return result
 
@@ -156,9 +171,11 @@ class nlp(object):
             'LogisticRegression': LogisticRegression(solver = 'newton-cg', multi_class = 'multinomial'),
             'MultinomialNB': MultinomialNB(),
             'AdaBoostClassifier': AdaBoostClassifier(),
-            'SVC': svm.SVC(gamma='scale'),
-            'LinearSVC': svm.LinearSVC(),
-            'SVCScale': svm.SVC(gamma='scale', decision_function_shape='ovo')
+            'SVC': SVC(gamma='scale'),
+            'LinearSVC': LinearSVC(max_iter=10000),
+            'SVCScale': SVC(gamma='scale', decision_function_shape='ovo'),
+            'DecisionTree': DecisionTreeClassifier(),
+            'RandomForest': RandomForestClassifier(n_estimators=100, max_depth=2, random_state=0)
         }[classifier]
 
     def array_merge(self, arrays, balance = True):
@@ -174,4 +191,89 @@ class nlp(object):
             newArrays.append(array)
 
         return np.concatenate(newArrays)
+
+    def calc_manual(self, model, features, real_labels, folds):       
+        result = {}
+
+        length = int(len(features) / folds)
+
+        train_features = features[:-length,]
+        train_labels = real_labels[:-length,]
+
+        test_features = features[-length:,]
+        test_labels = real_labels[-length:,]
+
+        classifier = model.fit(train_features, train_labels)
+
+        pred_labels = classifier.predict(test_features)
+
+        result['Accuracy'] = {}
+        result['Precision'] = {}
+        result['Recall'] = {}
+        result['F1'] = {}
+
+        result['Accuracy']['avg'] = accuracy_score(test_labels, pred_labels)
+        result['Precision']['avg'] = precision_score(test_labels, pred_labels, average = 'macro')
+        result['Recall']['avg'] = recall_score(test_labels, pred_labels, average = 'macro')
+        result['F1']['avg'] = f1_score(test_labels, pred_labels, average = 'macro')
+
+        return result
+    
+    def calc_cross_val_predict(self, model, features, real_labels, folds):
+        result = {}
+        
+        cv = StratifiedKFold(n_splits=folds)
+
+        pred_labels = cross_val_predict(
+            model,
+            features,
+            real_labels,
+            cv=cv
+        )
+
+        result['Accuracy'] = {}
+        result['Precision'] = {}
+        result['Recall'] = {}
+        result['F1'] = {}
+
+        result['Accuracy']['avg'] = accuracy_score(real_labels, pred_labels)
+        result['Precision']['avg'] = precision_score(real_labels, pred_labels, average = 'macro')
+        result['Recall']['avg'] = recall_score(real_labels, pred_labels, average = 'macro')
+        result['F1']['avg'] = f1_score(real_labels, pred_labels, average = 'macro')
+
+        return result
+
+    def calc_cross_validate(self, model, features, real_labels, folds):
+        result = {}
+        
+        cv = StratifiedKFold(n_splits=folds)
+        
+        scoring = ['accuracy', 'precision_macro', 'recall_macro', 'f1_macro']
+        scores = cross_validate(
+            model,
+            features,
+            real_labels,
+            scoring=scoring,
+            cv=cv
+        )
+        
+        result.update(self.get_metric('Accuracy', scores['test_accuracy']))
+        result.update(self.get_metric('Precision', scores['test_precision_macro']))
+        result.update(self.get_metric('Recall', scores['test_recall_macro']))
+        result.update(self.get_metric('F1', scores['test_f1_macro']))
+
+        return result
+
+    def get_metric(self, metric, values):
+        result = {}
+        result[metric] = {}
+
+        result[metric]['values'] = values
+        result[metric]['avg'] = values.mean()
+        result[metric]['max'] = values.max()
+        result[metric]['min'] = values.min()
+        result[metric]['median'] = np.median(values)
+        result[metric]['std'] = values.std()
+
+        return result
         
