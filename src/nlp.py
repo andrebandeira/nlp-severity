@@ -2,6 +2,8 @@ from sys import exit
 from pprint import pprint
 
 from sklearn.preprocessing import FunctionTransformer
+from sklearn.feature_extraction.text import TfidfVectorizer
+
 from sklearn.linear_model import LogisticRegression
 from sklearn.naive_bayes import MultinomialNB
 from sklearn.ensemble import AdaBoostClassifier, RandomForestClassifier
@@ -140,58 +142,120 @@ class Remove_Punctuation(FunctionTransformer):
         return re.sub('[^a-zA-Z0-9 \\\]', '', word)
 
 class Text_To_Numeric(FunctionTransformer):
-    word_map = {}
-    word_map_defined = False
+    method = {}
     
+    def __init__(self, method = 'tf_idf'):
+        self.method = method
+            
     def fit(self, X, y=None):
         return self
 
-    def transform(self, corpus):       
+    def transform(self, corpus):
+        def do_nothing(doc):
+            return doc
+        
+        tfidf = TfidfVectorizer(
+            analyzer='word',
+            tokenizer=do_nothing,
+            preprocessor=do_nothing,
+            token_pattern=None)
+
+        tfidf.fit(corpus)
+
+
+        if (self.method == 'tf_idf'):
+            return Text_To_Numeric.tf_idf(tfidf, corpus)
+        elif (self.method == 'tf_normalize'):
+            return Text_To_Numeric.tf_normalize(tfidf, corpus)
+        elif (self.method == 'tf'):
+            return Text_To_Numeric.tf(tfidf, corpus)
+        elif (self.method == 'binary'):
+            return Text_To_Numeric.binary(tfidf, corpus)
+
+            
+    @staticmethod 
+    def tf_idf(tfidf, corpus):       
+        return tfidf.transform(corpus)
+
+    @staticmethod
+    def tf_normalize(tfidf, corpus):
         size = len(corpus)
         
-        Text_To_Numeric.define_word_map(corpus)
+        word_map = tfidf.vocabulary_;
+
+        data = np.zeros((size, len(word_map)))
+
+        def tokens_to_numeric(tokens):
+            x = np.zeros(len(word_map))
         
-        data = np.zeros((size, len(Text_To_Numeric.word_map)))
-        
+            for t in tokens:
+                if t in word_map:
+                    i = word_map[t]
+                    x[i] += 1
+                    
+            x_sum = x.sum()
+            
+            if (x_sum > 0):
+                x = x / x_sum            
+            
+            return x
+            
         for i in range(0,size):
             tokens = corpus[i]            
-            row = Text_To_Numeric.tokens_to_numeric(tokens)
+            row = tokens_to_numeric(tokens)
             data[i,:] = row
 
-        return data
+        return data;
 
-    @staticmethod 
-    def define_word_map(corpus):
-        if (Text_To_Numeric.word_map_defined == False):
-            temp_word_map = {}
-            current_index = 0
-            size = len(corpus)
-            for i in range(0,size):
-                tokens = corpus[i]
-                for token in tokens:
-                    if token not in temp_word_map:
-                        temp_word_map[token] = current_index
-                        current_index += 1
+    @staticmethod
+    def tf(tfidf, corpus):
+        size = len(corpus)
+        
+        word_map = tfidf.vocabulary_;
 
-            Text_To_Numeric.word_map = temp_word_map
-            Text_To_Numeric.word_map_defined = True                
-        
+        data = np.zeros((size, len(word_map)))
 
-    @staticmethod     
-    def tokens_to_numeric(tokens):
-        x = np.zeros(len(Text_To_Numeric.word_map))
+        def tokens_to_numeric(tokens):
+            x = np.zeros(len(word_map))
         
-        for t in tokens:
-            if t in Text_To_Numeric.word_map:
-                i = Text_To_Numeric.word_map[t]
-                x[i] += 1
-                
-        x_sum = x.sum()
+            for t in tokens:
+                if t in word_map:
+                    i = word_map[t]
+                    x[i] += 1          
+            
+            return x
+            
+        for i in range(0,size):
+            tokens = corpus[i]            
+            row = tokens_to_numeric(tokens)
+            data[i,:] = row
+
+        return data;
+
+    @staticmethod
+    def binary(tfidf, corpus):
+        size = len(corpus)
         
-        if (x_sum > 0):
-            x = x / x_sum            
+        word_map = tfidf.vocabulary_;
+
+        data = np.zeros((size, len(word_map)))
+
+        def tokens_to_numeric(tokens):
+            x = np.zeros(len(word_map))
         
-        return x
+            for t in tokens:
+                if t in word_map:
+                    i = word_map[t]
+                    x[i] = 1          
+            
+            return x
+            
+        for i in range(0,size):
+            tokens = corpus[i]            
+            row = tokens_to_numeric(tokens)
+            data[i,:] = row
+
+        return data;
 
 class Utils(object):
     @staticmethod
