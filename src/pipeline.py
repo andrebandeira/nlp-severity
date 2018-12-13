@@ -59,12 +59,29 @@ pre_processing = Pipeline([
 features = pre_processing.transform(features)
 results = Utils.test(features, labels)
 
+better = {}
+better['Accuracy'] = 0
+better['Precision'] = 0
+better['Recall'] = 0
+better['F1'] = 0
+better_name = ''
+
 for classifier in results:
     print(classifier)
     metrics = results[classifier];
     for metric in metrics:
         print(metric,': ', results[classifier][metric]['avg'])
     print("\n")
+
+    if (metrics['Accuracy']['avg'] > better['Accuracy']):
+        better_name = classifier
+        better['Accuracy'] = metrics['Accuracy']['avg']
+        better['Precision'] = metrics['Precision']['avg']
+        better['Recall'] = metrics['Recall']['avg']
+        better['F1'] = metrics['F1']['avg']
+
+print(better_name)   
+print(better)       
 
 fim = time.time()
 print ("Tempo decorrido: ", fim-ini)
