@@ -1,12 +1,13 @@
 from sys import exit
 from pprint import pprint
 
-from nlp import Tokenizer, Remove_Numbers, Remove_Small_Words, Remove_Stop_Words, Lemmatizer, Remove_Punctuation, Text_To_Numeric, Utils
+from nlp import Tokenizer, Remove_Numbers, Remove_Small_Words, Remove_Stop_Words, Lemmatizer, Remove_Punctuation, Text_To_Numeric, Utils, Dim_Reduction
 
 import time
 import json
 
 from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import StandardScaler
 
 ini = time.time()
 
@@ -53,8 +54,10 @@ pre_processing = Pipeline([
     ('remove_stop_words',Remove_Stop_Words('portuguese')),    
     ('lemmatizer',Lemmatizer('portuguese')),
     ('remove_punctuation',Remove_Punctuation()),
-    ('text_to_numeric',Text_To_Numeric())
+    ('text_to_numeric',Text_To_Numeric()),
+    ('Dim_Reduction',Dim_Reduction())
 ])
+
 
 features = pre_processing.transform(features)
 results = Utils.test(features, labels)

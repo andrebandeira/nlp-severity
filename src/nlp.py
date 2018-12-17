@@ -20,6 +20,9 @@ import numpy as np
 import re
 import unicodedata
 
+from sklearn.decomposition import TruncatedSVD
+from sklearn.decomposition import PCA 
+
 class Tokenizer(FunctionTransformer):
                 
     def fit(self, X, y=None):
@@ -175,7 +178,7 @@ class Text_To_Numeric(FunctionTransformer):
             
     @staticmethod 
     def tf_idf(tfidf, corpus):       
-        return tfidf.transform(corpus)
+        return tfidf.transform(corpus).todense()
 
     @staticmethod
     def tf_normalize(tfidf, corpus):
@@ -256,7 +259,22 @@ class Text_To_Numeric(FunctionTransformer):
             data[i,:] = row
 
         return data;
+ 
+class Dim_Reduction(FunctionTransformer):
+    redu = {}
+    
+    def __init__(self, method= 'LSA', n_features = 800):
+        if method == 'LSA':
+            self.redu = TruncatedSVD(n_components=n_features)
+        elif (self.method == 'PCA'):
+            self.redu = PCA(n_components=n_features)           
+        
+    def fit(self, X, y=None):
+        return self
 
+    def transform(self, corpus):
+        return self.redu.fit_transform(corpus)
+    
 class Utils(object):
     @staticmethod
     def test(features, labels, folds = 10, classifiers = []):
@@ -265,7 +283,7 @@ class Utils(object):
         if (len(classifiers) == 0):
             classifiers = [
                 'LogisticRegression',
-                'MultinomialNB',
+                #'MultinomialNB',
                 'AdaBoostClassifier',
                 'SVC',
                 'LinearSVC',
