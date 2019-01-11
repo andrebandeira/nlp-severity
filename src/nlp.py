@@ -1,7 +1,6 @@
 from sys import exit
 from pprint import pprint
 
-from sklearn.preprocessing import FunctionTransformer
 from sklearn.feature_extraction.text import TfidfVectorizer
 
 from sklearn.linear_model import LogisticRegression
@@ -20,137 +19,91 @@ import numpy as np
 import re
 import unicodedata
 
-class Tokenizer(FunctionTransformer):
-                
-    def fit(self, X, y=None):
-        return self
+from sklearn.decomposition import TruncatedSVD
+from sklearn.decomposition import PCA 
 
-    def transform(self, corpus):
-        size = len(corpus)
+class NLP:
+    def tokenizer(features):
+        size = len(features)
         for i in range(0,size):
-            item = corpus[i]
-            if (isinstance(item, str)):
-                item = item.strip()
-                item = item.lower()
-                item = word_tokenize(item)
-                corpus[i] = item
+            item = features[i]
+            item = item.strip()
+            item = item.lower()
+            item = word_tokenize(item)
+            features[i] = item
             
-        return corpus
+        return features
 
-class Remove_Numbers(FunctionTransformer):
-        
-    def fit(self, X, y=None):
-        return self
-
-    def transform(self, corpus):
-        size = len(corpus)
+    def remove_numbers(features):
+        size = len(features)
         for i in range(0,size):
-            item = corpus[i]
-            item = [Remove_Numbers.remove(t) for t in item]
+            item = features[i]
+            item = [NLP.number_remove(t) for t in item]
             item = list(filter(None, item))
-            corpus[i] = item
+            features[i] = item
         
-        return corpus
+        return features
 
     @staticmethod 
-    def remove(word):
-        return re.sub('[0-9\\\]', '', word) 
-
-class Remove_Small_Words(FunctionTransformer):
-
-    min_length = {}
+    def number_remove(word):
+        return re.sub('[0-9\\\]', '', word)
     
-    def __init__(self, min_length = 3):
-        self.min_length = min_length
-        
-    def fit(self, X, y=None):
-        return self
-
-    def transform(self, corpus):
-        size = len(corpus)
+    def remove_small_words(features, min_length = 3):
+        size = len(features)
         for i in range(0,size):
-            item = corpus[i]
-            item = [t for t in item if len(t) > self.min_length]
-            corpus[i] = item
+            item = features[i]
+            item = [t for t in item if len(t) >= min_length]
+            features[i] = item
           
-        return corpus
+        return features
 
-class Remove_Stop_Words(FunctionTransformer):
-
-    stopword = {}
-    
-    def __init__(self, language = 'english'):
+    def remove_stop_words(features, language = 'english'):
         if (language == 'portuguese'):
-            self.stopword = stopwords.words('portuguese')
+            stopword = stopwords.words('portuguese')
         else:
-            self.stopword = stopwords.words('english')
-                    
-    def fit(self, X, y=None):
-        return self
-
-    def transform(self, corpus):
-        size = len(corpus)
-        for i in range(0,size):
-            item = corpus[i]
-            item = [t for t in item if t not in self.stopword]
-            corpus[i] = item
-               
-        return corpus
-
-class Lemmatizer(FunctionTransformer):
-
-    lemmatizer = {}
-    
-    def __init__(self, language = 'english'):
-        if (language == 'portuguese'):
-            self.lemmatizer = RSLPStemmer().stem
-        else:
-            self.lemmatizer = WordNetLemmatizer().lemmatize
+            stopword = stopwords.words('english')
             
-    def fit(self, X, y=None):
-        return self
-
-    def transform(self, corpus):
-        size = len(corpus)
+        size = len(features)
         for i in range(0,size):
-            item = corpus[i]
-            item = [self.lemmatizer(t) for t in item]
+            item = features[i]
+            item = [t for t in item if t not in stopword]
+            features[i] = item
+               
+        return features
+
+    def  lemmatizer(features, language = 'english'):
+        if (language == 'portuguese'):
+            lemmatizer = RSLPStemmer().stem
+        else:
+            lemmatizer = WordNetLemmatizer().lemmatize
+
+        size = len(features)
+        for i in range(0,size):
+            item = features[i]
+            item = [lemmatizer(t) for t in item]
             item = list(filter(None, item))
-            corpus[i] = item
+            features[i] = item
 
-        return corpus
+        return features
 
-class Remove_Punctuation(FunctionTransformer):
-        
-    def fit(self, X, y=None):
-        return self
-
-    def transform(self, corpus):
-        size = len(corpus)
+    def remove_punctuation(features):
+        size = len(features)
         for i in range(0,size):            
-            item = corpus[i]
-            item = [Remove_Punctuation.remove(t) for t in item]
+            item = features[i]
+            item = [NLP.punctuation_remove(t) for t in item]
             item = list(filter(None, item))
-            corpus[i] = item
+            features[i] = item
         
-        return corpus
+        return features
 
+    
     @staticmethod 
-    def remove(word):
+    def punctuation_remove(word):
         nfkd = unicodedata.normalize('NFKD', word)
         word = u"".join([c for c in nfkd if not unicodedata.combining(c)])        
         return re.sub('[^a-zA-Z0-9 \\\]', '', word)
 
-class Text_To_Numeric(FunctionTransformer):
-    method = {}
-    
-    def __init__(self, method = 'tf_idf'):
-        self.method = method
-            
-    def fit(self, X, y=None):
-        return self
-
-    def transform(self, corpus):
+    def text_to_numeric(features, method = 'tf_idf'):
         def do_nothing(doc):
             return doc
         
@@ -160,26 +113,25 @@ class Text_To_Numeric(FunctionTransformer):
             preprocessor=do_nothing,
             token_pattern=None)
 
-        tfidf.fit(corpus)
+        tfidf.fit(features)
 
+        if (method == 'tf_idf'):
+            return NLP.tf_idf(tfidf, features)
+        elif (method == 'tf_normalize'):
+            return NLP.tf_normalize(tfidf, features)
+        elif (method == 'tf'):
+            return NLP.tf(tfidf, features)
+        elif (method == 'binary'):
+            return NLP.binary(tfidf, features)
 
-        if (self.method == 'tf_idf'):
-            return Text_To_Numeric.tf_idf(tfidf, corpus)
-        elif (self.method == 'tf_normalize'):
-            return Text_To_Numeric.tf_normalize(tfidf, corpus)
-        elif (self.method == 'tf'):
-            return Text_To_Numeric.tf(tfidf, corpus)
-        elif (self.method == 'binary'):
-            return Text_To_Numeric.binary(tfidf, corpus)
-
-            
+        
     @staticmethod 
-    def tf_idf(tfidf, corpus):       
-        return tfidf.transform(corpus)
+    def tf_idf(tfidf, features):       
+        return tfidf.transform(features).todense()
 
     @staticmethod
-    def tf_normalize(tfidf, corpus):
-        size = len(corpus)
+    def tf_normalize(tfidf, features):
+        size = len(features)
         
         word_map = tfidf.vocabulary_;
 
@@ -201,15 +153,14 @@ class Text_To_Numeric(FunctionTransformer):
             return x
             
         for i in range(0,size):
-            tokens = corpus[i]            
+            tokens = features[i]            
             row = tokens_to_numeric(tokens)
             data[i,:] = row
 
         return data;
 
-    @staticmethod
-    def tf(tfidf, corpus):
-        size = len(corpus)
+    def tf(tfidf, features):
+        size = len(features)
         
         word_map = tfidf.vocabulary_;
 
@@ -226,15 +177,15 @@ class Text_To_Numeric(FunctionTransformer):
             return x
             
         for i in range(0,size):
-            tokens = corpus[i]            
+            tokens = features[i]            
             row = tokens_to_numeric(tokens)
             data[i,:] = row
 
         return data;
 
     @staticmethod
-    def binary(tfidf, corpus):
-        size = len(corpus)
+    def binary(tfidf, features):
+        size = len(features)
         
         word_map = tfidf.vocabulary_;
 
@@ -251,13 +202,20 @@ class Text_To_Numeric(FunctionTransformer):
             return x
             
         for i in range(0,size):
-            tokens = corpus[i]            
+            tokens = features[i]            
             row = tokens_to_numeric(tokens)
             data[i,:] = row
 
         return data;
 
-class Utils(object):
+    def dim_reduction(features, method= 'LSA', n_features = 800):
+        if (method == 'LSA'):
+            redu = TruncatedSVD(n_components=n_features)
+        elif (method == 'PCA'):
+            redu = PCA(n_components=n_features)
+
+        return redu.fit_transform(features)
+    
     @staticmethod
     def test(features, labels, folds = 10, classifiers = []):
         result = {}
@@ -275,9 +233,12 @@ class Utils(object):
             ]
 
         for classifier in classifiers:
-            model = Utils.get_classifier(classifier)
-            result[classifier] = Utils.calc_cross_validate(model, features, labels, folds)
-
+            try:
+                model = NLP.get_classifier(classifier)
+                result[classifier] = NLP.calc_cross_validate(model, features, labels, folds)
+            except:
+                print ("Erro ao executar classificador: ", classifier)
+                
         return result
 
     @staticmethod
@@ -306,10 +267,10 @@ class Utils(object):
             cv=folds
         )
         
-        result.update(Utils.get_metric('Accuracy', scores['test_accuracy']))
-        result.update(Utils.get_metric('Precision', scores['test_precision_macro']))
-        result.update(Utils.get_metric('Recall', scores['test_recall_macro']))
-        result.update(Utils.get_metric('F1', scores['test_f1_macro']))
+        result.update(NLP.get_metric('Accuracy', scores['test_accuracy']))
+        result.update(NLP.get_metric('Precision', scores['test_precision_macro']))
+        result.update(NLP.get_metric('Recall', scores['test_recall_macro']))
+        result.update(NLP.get_metric('F1', scores['test_f1_macro']))
 
         return result
 

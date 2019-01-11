@@ -1,12 +1,10 @@
 from sys import exit
 from pprint import pprint
 
-from nlp import Tokenizer, Remove_Numbers, Remove_Small_Words, Remove_Stop_Words, Lemmatizer, Remove_Punctuation, Text_To_Numeric, Utils
+from nlp import NLP
 
 import time
 import json
-
-from sklearn.pipeline import Pipeline
 
 ini = time.time()
 
@@ -41,23 +39,28 @@ for severity in p_severities:
         severities[severity].append(issue)
 
 
-severities = Utils.array_merge(severities.values())
+severities = NLP.array_merge(severities.values())
 
 features = [t['text'] for t in severities]
 labels = [t['severity'] for t in severities]
 
-pre_processing = Pipeline([
-    ('tokenizer',Tokenizer()),
-    ('remove_number',Remove_Numbers()),
-    ('remove_small_words',Remove_Small_Words()),
-    ('remove_stop_words',Remove_Stop_Words('portuguese')),    
-    ('lemmatizer',Lemmatizer('portuguese')),
-    ('remove_punctuation',Remove_Punctuation()),
-    ('text_to_numeric',Text_To_Numeric())
-])
+features = NLP.tokenizer(features)
+features = NLP.remove_numbers(features)
+features = NLP.remove_small_words(features)
+features = NLP.remove_stop_words(features, 'portuguese')
+features = NLP.lemmatizer(features, 'portuguese')
+features = NLP.remove_punctuation(features)
+features = NLP.text_to_numeric(features)
+features = NLP.dim_reduction(features)
 
-features = pre_processing.transform(features)
-results = Utils.test(features, labels)
+results = NLP.test(features, labels)
+
+better = {}
+better['Accuracy'] = 0
+better['Precision'] = 0
+better['Recall'] = 0
+better['F1'] = 0
+better_name = ''
 
 better = {}
 better['Accuracy'] = 0
