@@ -62,6 +62,13 @@ better['Recall'] = 0
 better['F1'] = 0
 better_name = ''
 
+better = {}
+better['Accuracy'] = 0
+better['Precision'] = 0
+better['Recall'] = 0
+better['F1'] = 0
+better_name = ''
+
 for classifier in results:
     print(classifier)
     metrics = results[classifier];

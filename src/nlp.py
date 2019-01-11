@@ -159,7 +159,6 @@ class NLP:
 
         return data;
 
-    @staticmethod
     def tf(tfidf, features):
         size = len(features)
         
@@ -217,7 +216,6 @@ class NLP:
 
         return redu.fit_transform(features)
     
-
     @staticmethod
     def test(features, labels, folds = 10, classifiers = []):
         result = {}
