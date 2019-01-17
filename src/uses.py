@@ -103,7 +103,7 @@ class USES:
         actual_iteration = 0
         selected_features = {}
 
-        while actual_iteration < iterations and best_FMeasure > 0:
+        while ((actual_iteration < iterations) or (best_FMeasure == 0)):
             actual_candidates = self.random_items(candidates, number_selected_words)
             
             filtered_features_build = self.filter_features(features_build, actual_candidates)
