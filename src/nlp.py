@@ -222,14 +222,14 @@ class NLP:
         
         if (len(classifiers) == 0):
             classifiers = [
-                'LogisticRegression',
+                #'LogisticRegression',
                 'MultinomialNB',
-                'AdaBoostClassifier',
-                'SVC',
+                #'AdaBoostClassifier',
+                #'SVC',
                 'LinearSVC',
-                'SVCScale',
-                'DecisionTree',
-                'RandomForest'
+                #'SVCScale',
+                #'DecisionTree',
+                #'RandomForest'
             ]
 
         for classifier in classifiers:

@@ -2,13 +2,14 @@ from sys import exit
 from pprint import pprint
 
 from nlp import NLP
+from uses import USES
 
 import time
 import json
 
 ini = time.time()
 
-mode = 'default'
+mode = '2_classes'
 
 if (mode == 'default'):
     p_severities = ['1','2','3','4','5']
@@ -33,10 +34,11 @@ for severity in p_severities:
     file = open(file, 'r', encoding="utf8")
     
     for line in file:
-        issue = json.loads(line);
-        issue["text"] = '';
-        issue["text"] = issue["description"].strip() + ' ' + issue["steps_reproduce"].strip() + ' ' + issue["expected_result"].strip() + ' ' + issue["real_result"].strip()            
-        severities[severity].append(issue)
+        if (line and line != '\n'):
+            issue = json.loads(line);
+            issue["text"] = '';
+            issue["text"] = issue["description"].strip() + ' ' + issue["steps_reproduce"].strip() + ' ' + issue["expected_result"].strip() + ' ' + issue["real_result"].strip()            
+            severities[severity].append(issue)
 
 
 severities = NLP.array_merge(severities.values())
@@ -45,13 +47,20 @@ features = [t['text'] for t in severities]
 labels = [t['severity'] for t in severities]
 
 features = NLP.tokenizer(features)
-features = NLP.remove_numbers(features)
-features = NLP.remove_small_words(features)
-features = NLP.remove_stop_words(features, 'portuguese')
-features = NLP.lemmatizer(features, 'portuguese')
-features = NLP.remove_punctuation(features)
+#features = NLP.remove_numbers(features)
+#features = NLP.remove_small_words(features)
+#features = NLP.remove_stop_words(features, 'portuguese')
+#features = NLP.lemmatizer(features, 'portuguese')
+#features = NLP.remove_punctuation(features)
+
+uses = USES(features, labels)
+features = uses.feature_selection(features, labels, 0.2, 0.9, 1000)
+#pprint(features)
 features = NLP.text_to_numeric(features)
-features = NLP.dim_reduction(features)
+
+
+#features = NLP.dim_reduction(features)
+
 
 results = NLP.test(features, labels)
 
