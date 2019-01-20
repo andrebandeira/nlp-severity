@@ -2,7 +2,9 @@ from sys import exit
 from pprint import pprint
 
 from nlp import NLP
+from uses_multi import USES_MULTI
 from uses import USES
+
 
 import time
 import json
@@ -47,15 +49,15 @@ features = [t['text'] for t in severities]
 labels = [t['severity'] for t in severities]
 
 features = NLP.tokenizer(features)
+
+features = USES_MULTI.feature_selection(features, labels, 0.1, 0.9, 100)
 #features = NLP.remove_numbers(features)
 #features = NLP.remove_small_words(features)
 #features = NLP.remove_stop_words(features, 'portuguese')
 #features = NLP.lemmatizer(features, 'portuguese')
 #features = NLP.remove_punctuation(features)
 
-uses = USES(features, labels)
-features = uses.feature_selection(features, labels, 0.2, 0.9, 1000)
-#pprint(features)
+
 features = NLP.text_to_numeric(features)
 
 

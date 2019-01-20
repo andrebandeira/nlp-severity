@@ -20,7 +20,9 @@ import re
 import unicodedata
 
 from sklearn.decomposition import TruncatedSVD
-from sklearn.decomposition import PCA 
+from sklearn.decomposition import PCA
+
+import random
 
 class NLP:
     def tokenizer(features):
@@ -208,7 +210,7 @@ class NLP:
 
         return data;
 
-    def dim_reduction(features, method= 'LSA', n_features = 800):
+    def dim_reduction(features, method= 'LSA', n_features = 500):
         if (method == 'LSA'):
             redu = TruncatedSVD(n_components=n_features)
         elif (method == 'PCA'):
@@ -290,17 +292,20 @@ class NLP:
     
     @staticmethod
     def array_merge(arrays, balance = True):
-        if (not balance):
-            return np.concatenate(arrays)
-
         newArrays = []
-            
-        length = min(map(len, arrays))
         
-        for array in arrays:
-            array = array[:length]
-            newArrays.append(array)
+        if (not balance):
+            newArrays = np.concatenate(arrays)
+        else:
+            length = min(map(len, arrays))
+        
+            for array in arrays:
+                array = array[:length]
+                newArrays.append(array)
 
-        return np.concatenate(newArrays)        
+            newArrays = np.concatenate(newArrays)
+
+        np.random.shuffle(newArrays)
+        return newArrays
 
 
