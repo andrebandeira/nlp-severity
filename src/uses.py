@@ -10,7 +10,7 @@ from nlp import NLP
 
 class USES:
         
-    def feature_selection(features, labels, percentage_words, percentage_build, iterations):        
+    def feature_selection(features, labels, percentage_words, percentage_build = 0.9, iterations = 100):        
         words_label = USES.words_label(features, labels)
 
         number_words = len(words_label)
@@ -38,12 +38,10 @@ class USES:
         actual_iteration = 0
         selected_features = {}
 
-        while (actual_iteration < iterations) or (best_FMeasure == 0):               
-            
+        while (actual_iteration < iterations) or (best_FMeasure == 0):
             actual_candidates = USES.random_items(candidates, number_selected_words)
             
             filtered_features_build = USES.filter_features(features_build, actual_candidates)
-            
             filtered_features_validate = USES.filter_features(features_validate, actual_candidates)
             
             try:
@@ -57,8 +55,8 @@ class USES:
                 if (FMeasure > best_FMeasure):
                     best_FMeasure = FMeasure
                     selected_features = actual_candidates
-            except:
-                FMeasure = 0            
+            except Exception as ex:
+                FMeasure = 0
 
             actual_iteration = actual_iteration + 1
 
@@ -131,8 +129,9 @@ class USES:
         return new_items
                    
     def classifier(features_build, labels_build, features_validate, labels_validate):
-        features_build = NLP.text_to_numeric(features_build)
-        features_validate = NLP.text_to_numeric(features_validate)
+        allFeatures = np.append(features_build,features_validate)
+        features_build = NLP.text_to_numeric(features_build, allFeatures)
+        features_validate = NLP.text_to_numeric(features_validate, allFeatures)
         
         svc = MultinomialNB()
         

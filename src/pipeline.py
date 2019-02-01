@@ -11,13 +11,13 @@ import json
 
 ini = time.time()
 
-mode = '2_classes'
+mode = '2class'
 
 if (mode == 'default'):
     p_severities = ['1','2','3','4','5']
 elif (mode == 'teste'):
     p_severities = ['0']     
-elif (mode == '2_classes'):
+elif (mode == '2class'):
     p_severities = ['0','1']   
 
 print(mode)
@@ -27,11 +27,11 @@ for severity in p_severities:
     severities[severity] = []
 
     if (mode == 'default'):
-        file = '../dataset/severity'+severity+'.txt'
+        file = '../dataset/Multiclass/severity'+severity+'.txt'
     elif (mode == 'teste'):
         file = '../dataset/teste/severity'+severity+'.txt'
-    elif (mode == '2_classes'):
-        file = '../dataset/2_classes/severity'+severity+'.txt'
+    elif (mode == '2class'):
+        file = '../dataset/2class/severity'+severity+'.txt'
         
     file = open(file, 'r', encoding="utf8")
     
@@ -40,29 +40,29 @@ for severity in p_severities:
             issue = json.loads(line);
             issue["text"] = '';
             issue["text"] = issue["description"].strip() + ' ' + issue["steps_reproduce"].strip() + ' ' + issue["expected_result"].strip() + ' ' + issue["real_result"].strip()            
+            #issue["text"] = issue["severity_words"].strip()
             severities[severity].append(issue)
 
 
 severities = NLP.array_merge(severities.values())
 
 features = [t['text'] for t in severities]
+
 labels = [t['severity'] for t in severities]
 
 features = NLP.tokenizer(features)
 
-features = USES_MULTI.feature_selection(features, labels, 0.1, 0.9, 100)
-#features = NLP.remove_numbers(features)
-#features = NLP.remove_small_words(features)
-#features = NLP.remove_stop_words(features, 'portuguese')
-#features = NLP.lemmatizer(features, 'portuguese')
-#features = NLP.remove_punctuation(features)
+features = NLP.remove_numbers(features)
+features = NLP.remove_small_words(features)
+features = NLP.remove_stop_words(features, 'portuguese')
+features = NLP.lemmatizer(features, 'portuguese')
+features = NLP.remove_punctuation(features)
 
+features = USES_MULTI.feature_selection(features, labels, 0.1)
 
 features = NLP.text_to_numeric(features)
 
-
 #features = NLP.dim_reduction(features)
-
 
 results = NLP.test(features, labels)
 

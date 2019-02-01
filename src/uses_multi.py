@@ -10,25 +10,27 @@ from nlp import NLP
 
 class USES_MULTI:
         
-    def feature_selection(features, labels, percentage_words, percentage_build, iterations):
+    def feature_selection(features, labels, percentage_words, iterations = 100):
         real_features = features.copy()
         
         words_label = USES_MULTI.words_label(features, labels)
 
         number_words = len(words_label)
         number_selected_words = int(round(number_words * percentage_words))
-        features_score = USES_MULTI.feature_score(words_label, labels)
-        
-        candidates = {}
-        for label in features_score:
-            negative_candidates = features_score[label][-number_selected_words:]            
-            positive_candidates = features_score[label][:number_selected_words]
-            candidates.update(positive_candidates)
-            candidates.update(negative_candidates)
 
-        number_features = len(features)
-        number_build_features = int(number_features * percentage_build)
+        distinct_labels = list(set(labels))
+        number_selected_words_label = int(number_selected_words / len(distinct_labels))
+
+        features_score = USES_MULTI.feature_score(words_label, labels)        
         
+        candidates = {}      
+
+        for label in features_score:                      
+            positive_candidates = features_score[label][:number_selected_words_label]
+            candidates.update(positive_candidates)
+            negative_candidates = features_score[label][-number_selected_words_label:]  
+            candidates.update(negative_candidates)
+                    
         results = {}
         actual_iteration = 0
         
@@ -39,20 +41,17 @@ class USES_MULTI:
                 labels = suffle_features['labels']
             
             actual_candidates = USES_MULTI.random_items(candidates, number_selected_words)
-
             filtered_features = USES_MULTI.filter_features(features, actual_candidates)
-        
+            #print(actual_candidates)
             try:
-                #pprint(actual_iteration)
+                pprint(actual_iteration)
                 FMeasure = USES_MULTI.classifier(
                     filtered_features,
-                    labels,
-                    number_build_features
+                    labels
                 )
-                #pprint(FMeasure)
-            except:
-                #except Exception as e:
-                #pprint(e)
+                pprint(FMeasure)
+            except Exception as e:
+                pprint(e)
                 FMeasure = 0            
 
             results.update({
@@ -67,8 +66,7 @@ class USES_MULTI:
         selected_features = results[0][1]
         
         filtered_features = USES_MULTI.filter_features(real_features, selected_features)
-        pprint('BEST')
-        pprint(best_FM)
+        print('Best: ', best_FM)
         
         return filtered_features
 
@@ -102,6 +100,7 @@ class USES_MULTI:
         for i in range(0,size):
             item = features[i]
             label = labels[i]
+            label = str(label)
                             
             sizeItem = len(item)
             for j in range(0,sizeItem):
@@ -109,7 +108,7 @@ class USES_MULTI:
 
                 if feature not in words_label:
                     words_label[feature] = {}
-
+                    
                 if label not in words_label[feature]:
                     words_label[feature][label] = 0
 
@@ -121,11 +120,12 @@ class USES_MULTI:
         distinct_labels = list(set(labels))
         score_label = 0;
         score_others_labels = 0
-
+        
         score = {}
         
         for label in distinct_labels:
             others_labels = [t for t in distinct_labels if t != label]
+            
             for word in words_label:
                 score_label = USES_MULTI.affinity_score(label, word, words_label, labels)
                 score_others_labels = 0
@@ -140,23 +140,28 @@ class USES_MULTI:
         
         for label in score:
             score[label] = sorted(score[label].items(), key=lambda x: x[1], reverse=True)
+        
         return score            
                 
     def affinity_score(label, word, words_label, labels):
         label = str(label)
+
         if label in words_label[word]:
             defect_word_label = words_label[word][label]
         else:
             defect_word_label = 0
-            
+
         defect_label =  labels.count(label)
         defect_word  = sum(words_label[word].values())
-               
-        affinity = defect_word_label / (defect_label + defect_word -defect_word_label)
 
+        affinity = defect_word_label / (defect_label + defect_word - defect_word_label)
+            
         return affinity;
 
     def random_items(items, number):
+        if (len(items) < number):
+            number = len(items)
+            
         items_copy = items.copy()
         
         new_items = {}
@@ -168,25 +173,21 @@ class USES_MULTI:
 
         return new_items
                    
-    def classifier(features, labels, number_build_features):
+    def classifier(features, labels):
         features_copy = features.copy()
         labels_copy = labels.copy()
         
         features_copy = NLP.text_to_numeric(features_copy)
-        
-        features_build = features_copy[:number_build_features]
-        labels_build = labels_copy[:number_build_features]
-        
-        features_validate = features_copy[number_build_features:]        
-        labels_validate = labels_copy[number_build_features:]
-             
-        svc = LinearSVC(max_iter=10000)
-        
-        svc.fit(features_build, labels_build)
-                
-        labels_predict = svc.predict(features_validate)
-        
-        return f1_score(labels_validate, labels_predict, average="macro")
+
+        results = NLP.test(features_copy, labels)
+        betterFM = 0
+
+        for classifier in results:
+            metrics = results[classifier];
+            if (metrics['F1']['avg'] > betterFM):
+                betterFM= metrics['F1']['avg']
+
+        return betterFM;
         
     def filter_features(features, selected_features):
         features_copy = features.copy()

@@ -105,7 +105,7 @@ class NLP:
         word = u"".join([c for c in nfkd if not unicodedata.combining(c)])        
         return re.sub('[^a-zA-Z0-9 \\\]', '', word)
 
-    def text_to_numeric(features, method = 'tf_idf'):
+    def text_to_numeric(features, allFeatures = [], method = 'tf_idf'):
         def do_nothing(doc):
             return doc
         
@@ -115,7 +115,10 @@ class NLP:
             preprocessor=do_nothing,
             token_pattern=None)
 
-        tfidf.fit(features)
+        if (not len(allFeatures)):
+            allFeatures = features
+            
+        tfidf.fit(allFeatures)
 
         if (method == 'tf_idf'):
             return NLP.tf_idf(tfidf, features)
@@ -210,7 +213,7 @@ class NLP:
 
         return data;
 
-    def dim_reduction(features, method= 'LSA', n_features = 500):
+    def dim_reduction(features, method= 'LSA', n_features = 100):
         if (method == 'LSA'):
             redu = TruncatedSVD(n_components=n_features)
         elif (method == 'PCA'):
@@ -225,7 +228,7 @@ class NLP:
         if (len(classifiers) == 0):
             classifiers = [
                 #'LogisticRegression',
-                'MultinomialNB',
+                #'MultinomialNB',
                 #'AdaBoostClassifier',
                 #'SVC',
                 'LinearSVC',
@@ -239,6 +242,11 @@ class NLP:
                 model = NLP.get_classifier(classifier)
                 result[classifier] = NLP.calc_cross_validate(model, features, labels, folds)
             except:
+                pprint(len(features));
+                pprint(len(labels))
+                pprint(labels.count(0))
+                pprint(labels.count(1))
+
                 print ("Erro ao executar classificador: ", classifier)
                 
         return result
