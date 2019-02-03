@@ -3,7 +3,7 @@ from pprint import pprint
 
 from nlp import NLP
 from uses_multi import USES_MULTI
-from uses import USES
+from alter_uses import ALTER_USES
 
 
 import time
@@ -11,7 +11,7 @@ import json
 
 ini = time.time()
 
-mode = '2class'
+mode = 'default'
 
 if (mode == 'default'):
     p_severities = ['1','2','3','4','5']
@@ -59,6 +59,7 @@ features = NLP.lemmatizer(features, 'portuguese')
 features = NLP.remove_punctuation(features)
 
 features = USES_MULTI.feature_selection(features, labels, 0.1)
+#features = ALTER_USES.feature_selection(features, labels)
 
 features = NLP.text_to_numeric(features)
 

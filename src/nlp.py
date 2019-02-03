@@ -242,11 +242,6 @@ class NLP:
                 model = NLP.get_classifier(classifier)
                 result[classifier] = NLP.calc_cross_validate(model, features, labels, folds)
             except:
-                pprint(len(features));
-                pprint(len(labels))
-                pprint(labels.count(0))
-                pprint(labels.count(1))
-
                 print ("Erro ao executar classificador: ", classifier)
                 
         return result
