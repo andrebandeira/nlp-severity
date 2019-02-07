@@ -131,14 +131,14 @@ class NLP:
 
         
     @staticmethod 
-    def tf_idf(tfidf, features):       
+    def tf_idf(tfidf, features):
         return tfidf.transform(features).todense()
 
     @staticmethod
     def tf_normalize(tfidf, features):
         size = len(features)
         
-        word_map = tfidf.vocabulary_;
+        word_map = tfidf.vocabulary_;       
 
         data = np.zeros((size, len(word_map)))
 
@@ -308,7 +308,20 @@ class NLP:
 
             newArrays = np.concatenate(newArrays)
 
-        np.random.shuffle(newArrays)
         return newArrays
+
+    def filter_features(features, dict_words):
+        features_copy = features.copy()
+        
+        if (len(dict_words) == 0):
+            return features_copy            
+        
+        size = len(features_copy)
+        for i in range(0,size):
+            item = features_copy[i]
+            item = [t for t in item if t in dict_words]
+            features_copy[i] = item
+
+        return features_copy
 
 

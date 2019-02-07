@@ -10,7 +10,7 @@ from nlp import NLP
 
 class USES_MULTI:
         
-    def feature_selection(features, labels, percentage_words, iterations = 100):
+    def get_dict(features, labels, percentage_words = 0.1, iterations = 50):
         real_features = features.copy()
         
         words_label = USES_MULTI.words_label(features, labels)
@@ -34,24 +34,18 @@ class USES_MULTI:
         results = {}
         actual_iteration = 0
         
-        while (actual_iteration < iterations) or (len(results) == 0):
-            if (actual_iteration % iterations == 0):
-                suffle_features = USES_MULTI.suffle_features(features, labels)
-                features = suffle_features['features']
-                labels = suffle_features['labels']
-            
+        while (actual_iteration < iterations):            
             actual_candidates = USES_MULTI.random_items(candidates, number_selected_words)
-            filtered_features = USES_MULTI.filter_features(features, actual_candidates)
-            #print(actual_candidates)
+            filtered_features = NLP.filter_features(features, actual_candidates)
             try:
-                pprint(actual_iteration)
+                #pprint(actual_iteration)
                 FMeasure = USES_MULTI.classifier(
                     filtered_features,
                     labels
                 )
-                pprint(FMeasure)
+                #pprint(FMeasure)
             except Exception as e:
-                pprint(e)
+                #pprint(e)
                 FMeasure = 0            
 
             results.update({
@@ -63,35 +57,11 @@ class USES_MULTI:
         results = sorted(results.items(), key=lambda x: x[0], reverse=True)
 
         best_FM = results[0][0]
-        selected_features = results[0][1]
+        dict_words = results[0][1]
         
-        filtered_features = USES_MULTI.filter_features(real_features, selected_features)
-        print('Best: ', best_FM)
+        #print('Best: ', best_FM)
         
-        return filtered_features
-
-    def valid_candidates(features, labels, features_score, actual_candidates):
-        candidates = list(actual_candidates.keys())
-        size = len(features)
-        for i in range(0,size):
-            item = features[i]
-            valid = False
-            for feature in item:
-                if feature in candidates:
-                    valid = True
-                    break
-                
-            if (valid == False):
-                scores = features_score[labels[i]]
-                for score in scores:
-                    if score[0] in item:
-                        candidates.append(score[0])
-                        actual_candidates.update({
-                            score[0]: score[1]
-                        })
-                        break
-                    
-        return actual_candidates
+        return dict_words
         
     def words_label(features, labels):
         words_label = {}
@@ -188,37 +158,6 @@ class USES_MULTI:
                 betterFM= metrics['F1']['avg']
 
         return betterFM;
-        
-    def filter_features(features, selected_features):
-        features_copy = features.copy()
-        size = len(features_copy)
-        for i in range(0,size):
-            item = features_copy[i]
-            item = [t for t in item if t in selected_features]
-            features_copy[i] = item
-
-        return features_copy
-
-    def suffle_features(features, labels):
-        features_copy = features.copy()
-        labels_copy = labels.copy()
-        
-        positions = np.arange(0, len(features_copy)).tolist()
-        np.random.shuffle(positions)
-        newFeatures = []
-        newLabels = []
-        
-        i = 0        
-        for position in positions:
-            newFeatures.insert(i, features_copy[position])
-            newLabels.insert(i, labels_copy[position])
-            i = i + 1
-        
-        return {
-           'features': newFeatures,
-           'labels': newLabels,
-        }
-        
 
 
 
