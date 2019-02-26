@@ -25,6 +25,8 @@ from sklearn.decomposition import PCA
 import random
 
 class NLP:
+    seed = 42
+    
     def tokenizer(features):
         size = len(features)
         for i in range(0,size):
@@ -241,22 +243,25 @@ class NLP:
             try:
                 model = NLP.get_classifier(classifier)
                 result[classifier] = NLP.calc_cross_validate(model, features, labels, folds)
-            except:
+            except Exception as e:
+                pprint(e)
                 print ("Erro ao executar classificador: ", classifier)
                 
         return result
 
     @staticmethod
     def get_classifier(classifier):
+        random.seed(NLP.seed)
+        
         return {
-            'LogisticRegression': LogisticRegression(solver = 'newton-cg', multi_class = 'multinomial'),
+            'LogisticRegression': LogisticRegression(solver = 'newton-cg', multi_class = 'multinomial', random_state = NLP.seed),
             'MultinomialNB': MultinomialNB(),
-            'AdaBoostClassifier': AdaBoostClassifier(),
-            'SVC': SVC(gamma='scale'),
-            'LinearSVC': LinearSVC(max_iter=10000),
-            'SVCScale': SVC(gamma='scale', decision_function_shape='ovo'),
-            'DecisionTree': DecisionTreeClassifier(),
-            'RandomForest': RandomForestClassifier(n_estimators=100, max_depth=2, random_state=0)
+            'AdaBoostClassifier': AdaBoostClassifier(random_state = NLP.seed),
+            'SVC': SVC(gamma='scale', random_state = NLP.seed),
+            'LinearSVC': LinearSVC(max_iter=10000, random_state = NLP.seed),
+            'SVCScale': SVC(gamma='scale', decision_function_shape='ovo', random_state = NLP.seed),
+            'DecisionTree': DecisionTreeClassifier(random_state = NLP.seed),
+            'RandomForest': RandomForestClassifier(n_estimators=100, max_depth=2, random_state = NLP.seed)
         }[classifier]
 
     @staticmethod

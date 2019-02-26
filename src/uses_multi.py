@@ -125,8 +125,8 @@ class USES_MULTI:
         defect_word  = sum(words_label[word].values())
 
         affinity = defect_word_label / (defect_label + defect_word - defect_word_label)
-            
-        return affinity;
+        
+        return affinity
 
     def random_items(items, number):
         if (len(items) < number):

@@ -12,7 +12,7 @@ class FILES:
         elif (input_file == 'teste'):
             p_severities = ['0']     
         elif (input_file == '2_class'):
-            p_severities = ['0','1']   
+            p_severities = ['0', '1']   
 
         
         severities = {}
