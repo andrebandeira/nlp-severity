@@ -127,6 +127,7 @@ class NLP:
         elif (method == 'tf_normalize'):
             return NLP.tf_normalize(tfidf, features)
         elif (method == 'tf'):
+            pprint('ok')
             return NLP.tf(tfidf, features)
         elif (method == 'binary'):
             return NLP.binary(tfidf, features)
@@ -230,12 +231,12 @@ class NLP:
         if (len(classifiers) == 0):
             classifiers = [
                 #'LogisticRegression',
-                #'MultinomialNB',
+                'MultinomialNB',
                 #'AdaBoostClassifier',
                 #'SVC',
                 'LinearSVC',
                 #'SVCScale',
-                #'DecisionTree',
+                'DecisionTree',
                 #'RandomForest'
             ]
 
@@ -303,7 +304,10 @@ class NLP:
         newArrays = []
         
         if (not balance):
-            newArrays = np.concatenate(arrays)
+            for array in arrays:
+                newArrays.append(array)
+                
+            newArrays = np.concatenate(newArrays)
         else:
             length = min(map(len, arrays))
         

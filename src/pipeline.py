@@ -18,8 +18,7 @@ warnings.filterwarnings("ignore")
 input_file = '2_class'
 print('Input File: ', input_file)
 
-#modes = ['default','domain','uses','alter_uses']
-modes = ['alter_uses']
+modes = ['default','uses','alter_uses']
 
 for mode in modes:
     print("\n")
@@ -69,12 +68,11 @@ for mode in modes:
     features = NLP.filter_features(features, dict_words)
         
     if (len(dict_words)):
-        print('PASSOU')
         dict_words = [dict_words];
     else:
         dict_words = []
 
-    features = NLP.text_to_numeric(features, )        
+    features = NLP.text_to_numeric(features,[], 'tf')        
 
 
     #features = NLP.dim_reduction(features)
@@ -84,7 +82,7 @@ for mode in modes:
     for classifier in results:
         print('Classifier: ', classifier)
         metrics = results[classifier];
-        pprint(metrics)
+        pprint(metrics['F1'])
 
 
     fim = time.time()

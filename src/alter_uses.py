@@ -42,7 +42,6 @@ class ALTER_USES:
                 #pprint(e)
                 FMeasure = 0            
 
-            pprint(FMeasure)
             results.update({
                 FMeasure: dict_words
             })

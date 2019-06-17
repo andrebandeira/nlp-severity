@@ -25,8 +25,9 @@ class FILES:
             elif (input_file == 'teste'):
                 file = '../dataset/teste/severity'+severity+'.txt'
             elif (input_file == '2_class'):
-                file = '../dataset/2class/severity'+severity+'.txt'
-                
+                file = '../dataset/xia/xia/class'+severity+'.txt'
+
+            
             file = open(file, 'r', encoding="utf8")
             
             for line in file:
@@ -49,16 +50,25 @@ class FILES:
                     if ("real_result" in line):
                         issue["text"] += line["real_result"].strip().lower() + ' '
 
+                    if ("SUMMARY" in line):
+                        issue["text"] += line["SUMMARY"].strip().lower() + ' '
+                        
+                    if ("DESCRIPTION" in line):
+                        issue["text"] += line["DESCRIPTION"].strip().lower() + ' '
+                        
                     if ("severity_words" in line):
                         issue["severity_words"] = line["severity_words"].strip().lower()
 
-                    issue["severity"] = line["severity"]
+                    if ("severity" in line):
+                        issue["severity"] = line["severity"].strip().lower()
+
+                    if ("CLASS" in line):
+                        issue["severity"] = str(line["CLASS"]).strip().lower()
+                        
 
                     issue["text"] = issue["text"].strip()
                     issue["severity_words"] = issue["severity_words"].strip()
                     
                     
                     severities[severity].append(issue)
-                    
-
-        return NLP.array_merge(severities.values())
+        return NLP.array_merge(severities.values(), False)
