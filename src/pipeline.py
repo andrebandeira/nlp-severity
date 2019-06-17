@@ -2,89 +2,94 @@ from sys import exit
 from pprint import pprint
 
 from nlp import NLP
+from uses_multi import USES_MULTI
+from alter_uses import ALTER_USES
+from files import FILES
+from domain import DOMAIN
+from joblib import dump, load
+from sklearn.svm import LinearSVC
 
 import time
-import json
+import warnings
+warnings.filterwarnings("ignore")
 
-ini = time.time()
+#'5_class', 'teste', '2_class'
 
-mode = 'default'
+input_file = '2_class'
+print('Input File: ', input_file)
 
-if (mode == 'default'):
-    p_severities = ['1','2','3','4','5']
-elif (mode == 'teste'):
-    p_severities = ['0']     
-elif (mode == '2_classes'):
-    p_severities = ['0','1']   
+modes = ['default','uses','alter_uses']
 
-print(mode)
-
-severities = {}
-for severity in p_severities:
-    severities[severity] = []
-
-    if (mode == 'default'):
-        file = '../dataset/severity'+severity+'.txt'
-    elif (mode == 'teste'):
-        file = '../dataset/teste/severity'+severity+'.txt'
-    elif (mode == '2_classes'):
-        file = '../dataset/2_classes/severity'+severity+'.txt'
-        
-    file = open(file, 'r', encoding="utf8")
-    
-    for line in file:
-        issue = json.loads(line);
-        issue["text"] = '';
-        issue["text"] = issue["description"].strip() + ' ' + issue["steps_reproduce"].strip() + ' ' + issue["expected_result"].strip() + ' ' + issue["real_result"].strip()            
-        severities[severity].append(issue)
-
-
-severities = NLP.array_merge(severities.values())
-
-features = [t['text'] for t in severities]
-labels = [t['severity'] for t in severities]
-
-features = NLP.tokenizer(features)
-features = NLP.remove_numbers(features)
-features = NLP.remove_small_words(features)
-features = NLP.remove_stop_words(features, 'portuguese')
-features = NLP.lemmatizer(features, 'portuguese')
-features = NLP.remove_punctuation(features)
-features = NLP.text_to_numeric(features)
-features = NLP.dim_reduction(features)
-
-results = NLP.test(features, labels)
-
-better = {}
-better['Accuracy'] = 0
-better['Precision'] = 0
-better['Recall'] = 0
-better['F1'] = 0
-better_name = ''
-
-better = {}
-better['Accuracy'] = 0
-better['Precision'] = 0
-better['Recall'] = 0
-better['F1'] = 0
-better_name = ''
-
-for classifier in results:
-    print(classifier)
-    metrics = results[classifier];
-    for metric in metrics:
-        print(metric,': ', results[classifier][metric]['avg'])
+for mode in modes:
     print("\n")
+    
+    ini = time.time()
 
-    if (metrics['Accuracy']['avg'] > better['Accuracy']):
-        better_name = classifier
-        better['Accuracy'] = metrics['Accuracy']['avg']
-        better['Precision'] = metrics['Precision']['avg']
-        better['Recall'] = metrics['Recall']['avg']
-        better['F1'] = metrics['F1']['avg']
+    issues = FILES.read(input_file)
 
-print(better_name)   
-print(better)       
+    features = [t['text'] for t in issues]
 
-fim = time.time()
-print ("Tempo decorrido: ", fim-ini)
+    labels = [t['severity'] for t in issues]
+
+    features = NLP.tokenizer(features)
+    
+    features = NLP.remove_numbers(features)
+    features = NLP.remove_small_words(features)
+    features = NLP.remove_stop_words(features, 'portuguese')
+    features = NLP.lemmatizer(features, 'portuguese')
+    features = NLP.remove_punctuation(features)
+
+    if ("domain" in mode):
+        severity_words = [t['severity_words'] for t in issues]
+
+        severity_words = NLP.tokenizer(severity_words)
+    
+        severity_words = NLP.remove_numbers(severity_words)
+        severity_words = NLP.remove_small_words(severity_words)
+        severity_words = NLP.remove_stop_words(severity_words, 'portuguese')
+        severity_words = NLP.lemmatizer(severity_words, 'portuguese')
+        severity_words = NLP.remove_punctuation(severity_words)
+
+    dict_words = set()
+    
+    if (mode == 'uses'):
+        print('Mode: Uses')
+        dict_words = USES_MULTI.get_dict(features, labels)
+    elif (mode == 'alter_uses'):
+        print('Mode: Alter Uses')
+        dict_words = ALTER_USES.get_dict(features, labels)
+    elif (mode == 'domain'):
+        print('Mode: Domain')
+        dict_words = DOMAIN.get_dict(severity_words)
+    else :
+        print('Mode: Default')        
+            
+            
+    features = NLP.filter_features(features, dict_words)
+        
+    if (len(dict_words)):
+        dict_words = [dict_words];
+    else:
+        dict_words = []
+
+    features = NLP.text_to_numeric(features,[], 'tf')        
+
+
+    #features = NLP.dim_reduction(features)
+
+    results = NLP.test(features, labels)
+
+    for classifier in results:
+        print('Classifier: ', classifier)
+        metrics = results[classifier];
+        pprint(metrics['F1'])
+
+
+    fim = time.time()
+    print ("Tempo decorrido: ", fim-ini)
+
+    model = LinearSVC(max_iter=10000, random_state = NLP.seed)
+    model.fit(features, labels)
+    dump(model, 'files/model.joblib')
+    dump(dict_words, 'files/dict.joblib')
+    

@@ -20,9 +20,13 @@ import re
 import unicodedata
 
 from sklearn.decomposition import TruncatedSVD
-from sklearn.decomposition import PCA 
+from sklearn.decomposition import PCA
+
+import random
 
 class NLP:
+    seed = 42
+    
     def tokenizer(features):
         size = len(features)
         for i in range(0,size):
@@ -103,7 +107,7 @@ class NLP:
         word = u"".join([c for c in nfkd if not unicodedata.combining(c)])        
         return re.sub('[^a-zA-Z0-9 \\\]', '', word)
 
-    def text_to_numeric(features, method = 'tf_idf'):
+    def text_to_numeric(features, allFeatures = [], method = 'tf_idf'):
         def do_nothing(doc):
             return doc
         
@@ -113,27 +117,31 @@ class NLP:
             preprocessor=do_nothing,
             token_pattern=None)
 
-        tfidf.fit(features)
+        if (not len(allFeatures)):
+            allFeatures = features
+            
+        tfidf.fit(allFeatures)
 
         if (method == 'tf_idf'):
             return NLP.tf_idf(tfidf, features)
         elif (method == 'tf_normalize'):
             return NLP.tf_normalize(tfidf, features)
         elif (method == 'tf'):
+            pprint('ok')
             return NLP.tf(tfidf, features)
         elif (method == 'binary'):
             return NLP.binary(tfidf, features)
 
         
     @staticmethod 
-    def tf_idf(tfidf, features):       
+    def tf_idf(tfidf, features):
         return tfidf.transform(features).todense()
 
     @staticmethod
     def tf_normalize(tfidf, features):
         size = len(features)
         
-        word_map = tfidf.vocabulary_;
+        word_map = tfidf.vocabulary_;       
 
         data = np.zeros((size, len(word_map)))
 
@@ -208,7 +216,7 @@ class NLP:
 
         return data;
 
-    def dim_reduction(features, method= 'LSA', n_features = 800):
+    def dim_reduction(features, method= 'LSA', n_features = 100):
         if (method == 'LSA'):
             redu = TruncatedSVD(n_components=n_features)
         elif (method == 'PCA'):
@@ -222,36 +230,39 @@ class NLP:
         
         if (len(classifiers) == 0):
             classifiers = [
-                'LogisticRegression',
+                #'LogisticRegression',
                 'MultinomialNB',
-                'AdaBoostClassifier',
-                'SVC',
+                #'AdaBoostClassifier',
+                #'SVC',
                 'LinearSVC',
-                'SVCScale',
+                #'SVCScale',
                 'DecisionTree',
-                'RandomForest'
+                #'RandomForest'
             ]
 
         for classifier in classifiers:
             try:
                 model = NLP.get_classifier(classifier)
                 result[classifier] = NLP.calc_cross_validate(model, features, labels, folds)
-            except:
+            except Exception as e:
+                pprint(e)
                 print ("Erro ao executar classificador: ", classifier)
                 
         return result
 
     @staticmethod
     def get_classifier(classifier):
+        random.seed(NLP.seed)
+        
         return {
-            'LogisticRegression': LogisticRegression(solver = 'newton-cg', multi_class = 'multinomial'),
+            'LogisticRegression': LogisticRegression(solver = 'newton-cg', multi_class = 'multinomial', random_state = NLP.seed),
             'MultinomialNB': MultinomialNB(),
-            'AdaBoostClassifier': AdaBoostClassifier(),
-            'SVC': SVC(gamma='scale'),
-            'LinearSVC': LinearSVC(max_iter=10000),
-            'SVCScale': SVC(gamma='scale', decision_function_shape='ovo'),
-            'DecisionTree': DecisionTreeClassifier(),
-            'RandomForest': RandomForestClassifier(n_estimators=100, max_depth=2, random_state=0)
+            'AdaBoostClassifier': AdaBoostClassifier(random_state = NLP.seed),
+            'SVC': SVC(gamma='scale', random_state = NLP.seed),
+            'LinearSVC': LinearSVC(max_iter=10000, random_state = NLP.seed),
+            'SVCScale': SVC(gamma='scale', decision_function_shape='ovo', random_state = NLP.seed),
+            'DecisionTree': DecisionTreeClassifier(random_state = NLP.seed),
+            'RandomForest': RandomForestClassifier(n_estimators=100, max_depth=2, random_state = NLP.seed)
         }[classifier]
 
     @staticmethod
@@ -290,17 +301,36 @@ class NLP:
     
     @staticmethod
     def array_merge(arrays, balance = True):
-        if (not balance):
-            return np.concatenate(arrays)
-
         newArrays = []
-            
-        length = min(map(len, arrays))
         
-        for array in arrays:
-            array = array[:length]
-            newArrays.append(array)
+        if (not balance):
+            for array in arrays:
+                newArrays.append(array)
+                
+            newArrays = np.concatenate(newArrays)
+        else:
+            length = min(map(len, arrays))
+        
+            for array in arrays:
+                array = array[:length]
+                newArrays.append(array)
 
-        return np.concatenate(newArrays)        
+            newArrays = np.concatenate(newArrays)
+
+        return newArrays
+
+    def filter_features(features, dict_words):
+        features_copy = features.copy()
+        
+        if (len(dict_words) == 0):
+            return features_copy            
+        
+        size = len(features_copy)
+        for i in range(0,size):
+            item = features_copy[i]
+            item = [t for t in item if t in dict_words]
+            features_copy[i] = item
+
+        return features_copy
 
 
